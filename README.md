@@ -7,10 +7,9 @@ A Convolutional Neural Network (CNN) that classifies Alzheimer's MRI scans into 
 ## Table of Contents
 - [Overview](#overview)
 - [Dataset](#dataset)
-- [Installation](#installation)
-- [Usage](#usage)
 - [Model Architecture](#model-architecture)
 - [Results](#results)
+- [Reproduce](#reproduce)
 
 ## Overview
 
@@ -31,76 +30,46 @@ The dataset is sourced from the [Alzheimer MRI Disease Classification Dataset](h
 - **Test samples:** 1,280
 - **Image size:** 128x128x3
 
-## Installation
-
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/Mukund604/Alzheimer-MRI-Scans-Classifier-using-CNN.git
-    cd Alzheimer-MRI-Scans-Classifier-using-CNN
-    ```
-
-2. Create and activate a virtual environment:
-    ```sh
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    ```
-
-3. Install the required packages:
-    ```sh
-    pip install -r requirements.txt
-    ```
-
-## Usage
-
-To train and evaluate the model, run the Jupyter notebook provided in the repository:
-
-1. Start Jupyter Notebook:
-    ```sh
-    jupyter notebook
-    ```
-
-2. Open the `alzheimer-mri-scans-classifier-using-cnn-2.ipynb` notebook and run the cells sequentially.
-
 ## Model Architecture
 
-The model uses a 4-block CNN with BatchNormalization, GlobalAveragePooling2D, and Dropout for regularization. Data augmentation (rotation, shift, flip, zoom) is applied during training to reduce overfitting.
-
-```python
-Model = Sequential()
-
-# Block 1 - 32 filters
-Model.add(Conv2D(32, (3, 3), padding='same', activation='relu', input_shape=(128, 128, 3)))
-Model.add(BatchNormalization())
-Model.add(MaxPooling2D(pool_size=(2, 2)))
-Model.add(Dropout(0.25))
-
-# Block 2 - 64 filters
-Model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
-Model.add(BatchNormalization())
-Model.add(MaxPooling2D(pool_size=(2, 2)))
-Model.add(Dropout(0.25))
-
-# Block 3 - 128 filters
-Model.add(Conv2D(128, (3, 3), padding='same', activation='relu'))
-Model.add(BatchNormalization())
-Model.add(MaxPooling2D(pool_size=(2, 2)))
-Model.add(Dropout(0.25))
-
-# Block 4 - 256 filters
-Model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
-Model.add(BatchNormalization())
-Model.add(MaxPooling2D(pool_size=(2, 2)))
-Model.add(Dropout(0.25))
-
-# Classification head
-Model.add(GlobalAveragePooling2D())
-Model.add(Dense(256, activation='relu'))
-Model.add(Dropout(0.5))
-Model.add(Dense(4, activation='softmax'))
-```
-
-Training uses `EarlyStopping` and `ReduceLROnPlateau` callbacks.
+Two convolution blocks (32 and 64 filters, each with ReLU, max pooling and dropout) and a flatten layer into 4 outputs. See `CNN` in [`train.py`](train.py). The original Keras version is in the notebook.
 
 ## Results
 
-The model is evaluated with a full classification report (precision, recall, F1-score per class) and confusion matrix on the held-out test set. The notebook is saved without outputs, so run it to reproduce these numbers.
+Mean over 3 seeds on the untouched test split of 1,280 scans. The split is imbalanced: Moderate Demented has 49 training scans and 15 test scans, so accuracy alone flatters a model.
+
+| Model | Accuracy | Balanced accuracy | Macro F1 |
+| :--- | ---: | ---: | ---: |
+| Always predict the largest class | 49.5% | 25.0% | 0.166 |
+| Logistic regression on pixels | 96.9% | 94.1% | 0.959 |
+| **CNN (mean of 3 seeds)** | **96.7% ± 0.8** | **95.6% ± 2.0** | **0.967 ± 0.014** |
+
+<img src="results/confusion_matrix.png" width="45%" alt="Test confusion matrix" />
+
+<img src="results/grad_cam.png" width="100%" alt="Grad-CAM heatmaps for one scan of each class" />
+
+*Grad-CAM from a separate retraining with the same settings. It shows where the network looked, not whether it looked at the right anatomy.*
+
+### Why I don't trust these numbers much
+
+**Plain logistic regression on raw pixels ties the CNN.** That shouldn't happen on a hard vision problem, and it points to a problem with the split rather than a great model.
+
+The dataset has no patient IDs, so neighboring slices from one patient can land in both train and test. As a rough check, 97.9% of test images have a training image with a correlation above 0.98 (median 0.994). Brain scans all look alike, so this can't prove leakage by itself, but with the baseline result it's a strong warning.
+
+A trustworthy estimate needs a patient level split, which this dataset can't support. **Treat these scores as an upper bound. This is a learning project and not a medical tool.**
+
+### What I changed from the first version
+
+* **Moved to PyTorch** with stratified validation splits, as the original unshuffled split could leave the rare class to chance.
+* **Model selection on validation only.** The test split is scored once per seed.
+* **Tried a deeper model and dropped it.** Four blocks with batch normalization and global pooling reached a validation macro F1 of only 0.31 after 15 epochs, against 0.93 for this smaller flatten model. That gap is another hint the task rewards memorizing position.
+* The notebook's old 95.23% headline had no saved output behind it, so it's kept for history only.
+
+## Reproduce
+
+```
+pip install -r requirements.txt
+# put the two parquet files from huggingface.co/datasets/Falah/Alzheimer_MRI in data/
+python train.py --data-dir data
+pytest
+```
