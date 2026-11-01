@@ -1,6 +1,6 @@
 # Alzheimer's MRI Scans Classifier using CNN
 
-![](https://www.frontiersin.org/files/Articles/501050/fnins-14-00259-HTML-r1/image_m/fnins-14-00259-g001.jpg)
+<img src="assets/card.jpg" width="100%" alt="Alzheimer MRI Classifier: 4 classes, 5,120 training scans, 1,280 test scans" />
 
 A Convolutional Neural Network (CNN) that classifies Alzheimer's MRI scans into four categories: **Mild Demented**, **Moderate Demented**, **Non Demented**, and **Very Mild Demented**.
 
@@ -11,7 +11,6 @@ A Convolutional Neural Network (CNN) that classifies Alzheimer's MRI scans into 
 - [Usage](#usage)
 - [Model Architecture](#model-architecture)
 - [Results](#results)
-- [Contributing](#contributing)
 
 ## Overview
 
@@ -104,14 +103,4 @@ Training uses `EarlyStopping` and `ReduceLROnPlateau` callbacks.
 
 ## Results
 
-The model is evaluated with a full classification report (precision, recall, F1-score per class) and confusion matrix on the held-out test set. See the notebook for detailed results after training.
-
-## Contributing
-
-Contributions are welcome! If you have any suggestions or improvements, feel free to create an issue or submit a pull request.
-
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add some feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a pull request
+The model is evaluated with a full classification report (precision, recall, F1-score per class) and confusion matrix on the held-out test set. The notebook is saved without outputs, so run it to reproduce these numbers.
